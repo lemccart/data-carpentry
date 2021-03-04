@@ -14,7 +14,8 @@ def convert_pr_units(darray):
       darray (xarray.DataArray): Precipitation data
 
     """
-
+    assert darray.units == 'kg m-2 s-1', "Program assumes input units are kg m-2 s-1"
+    
     darray.data = darray.data * 86400
     darray.attrs['units'] = 'mm/day'
 
@@ -39,6 +40,7 @@ def create_plot(clim, model, season, gridlines=False, levels=None):
         levels = np.arange(0., 13., 1.)
 
     fig = plt.figure(figsize=[15,7])
+
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180))
     clim.sel(season=season).plot.contourf(ax=ax,
                                           levels=levels,
@@ -49,8 +51,6 @@ def create_plot(clim, model, season, gridlines=False, levels=None):
     ax.coastlines()
     if gridlines:
         plt.gca().gridlines()
-
-
 
     title = f'{model} precipitation climatology ({season})'
     plt.title(title)
