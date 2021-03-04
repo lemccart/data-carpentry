@@ -6,6 +6,7 @@ import numpy as np
 import cmocean
 
 import pdb
+import cmdline_provenance as cmdprov
 
 def convert_pr_units(darray):
     """Convert kg m-2 s-1 to mm day-1.
@@ -15,7 +16,7 @@ def convert_pr_units(darray):
 
     """
     assert darray.units == 'kg m-2 s-1', "Program assumes input units are kg m-2 s-1"
-    
+
     darray.data = darray.data * 86400
     darray.attrs['units'] = 'mm/day'
 
@@ -76,6 +77,20 @@ def apply_mask(darray, sftlf_file, realm):
 
     return masked_darray
 
+def get_log_and_key(pr_file, history_attr, plot_type):
+    valid_keys = {'png': 'History',
+                  'pdf': 'Title',
+                  'eps': 'Creator',
+                  'ps' : 'Creator'}
+
+    assert plot_type in valid_keys.keys(), f"Image format not one of: {*[*valid_keys],}"
+    log_key = valid_keys[plot_type]
+    new_log = cmdprov.new_log(infile_history={pr_file: history_attr})
+    new_log = new_log.replace('\n', ' END ')
+
+    return log_key, new_log
+
+
 def main(inargs):
     """Run the program."""
 
@@ -88,7 +103,12 @@ def main(inargs):
         clim = apply_mask(clim, sftlf_file, realm)
 
     create_plot(clim, dset.attrs['source_id'], inargs.season, gridlines=inargs.gridlines, levels=inargs.colorbar_levels)
-    plt.savefig(inargs.output_file, dpi=200)
+
+    #pdb.set_trace()
+    log_key, new_log = get_log_and_key(inargs.pr_file,
+                                   dset.attrs['history'],
+                                   inargs.output_file.split('.')[-1])
+    plt.savefig(inargs.output_file, metadata={log_key: new_log}, dpi=200)
 
 
 if __name__ == '__main__':
@@ -101,6 +121,14 @@ if __name__ == '__main__':
     parser.add_argument("--gridlines", action="store_true", default=False, help="Option to include gridlines")
     parser.add_argument("--colorbar_levels", type=float, nargs='*', default=None, help="Option to include custom colorbar ticks")
     parser.add_argument("--mask", type=str, nargs=2, metavar=('SFTLF_FILE', 'REALM'), default=None, help="""Provide sftlf file and realm to mask ('land' or 'ocean')""")
+
+
+## I do not understand this part.......
+    # out_dset.attrs = in_dset.attrs
+    # new_log = cmdprov.new_log(infile_history={inargs.pr_file: in_dset.attrs['history']})
+    # out_dset.attrs['history'] = new_log
+    # out_dset.to_netcdf(inargs.output_file)
+
 
     args = parser.parse_args()
 
